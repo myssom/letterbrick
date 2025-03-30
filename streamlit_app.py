@@ -8,7 +8,23 @@ from datetime import datetime
 import tempfile
 
 # ✅ OCR 설정
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+import os
+
+# 클라우드 환경에서는 OCR 꺼두기
+if not os.environ.get("STREAMLIT_SERVER"):
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+if not os.environ.get("STREAMLIT_SERVER"):
+    st.markdown("### 📸 손글씨 사진 업로드 (OCR)")
+    ocr_image = st.file_uploader("👉 손글씨 이미지 업로드", type=["jpg", "png"])
+
+    if ocr_image:
+        try:
+            img = Image.open(ocr_image)
+            ocr_text = pytesseract.image_to_string(img, lang="kor")
+            st.success("✅ 인식 완료!")
+        except Exception as e:
+            st.error(f"❌ OCR 오류: {e}")
 
 # OpenAI 연결
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
