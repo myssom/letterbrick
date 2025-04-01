@@ -1,6 +1,7 @@
-streamlit
-openai
-pytesseract
-Pillow
-fpdf
+streamlit==1.30.0
+openai==1.14.3
+pytesseract==0.3.13
+Pillow==10.2.0
+fpdf==1.7.2
+
 
