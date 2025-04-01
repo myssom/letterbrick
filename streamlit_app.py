@@ -10,11 +10,12 @@ import tempfile
 # ✅ OCR 설정
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-# OpenAI 연결
+# ✅ OpenAI 연결
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# 저장 파일
+# ✅ 저장 파일
 HISTORY_FILE = "history.json"
+
 
 # 페이지 설정
 st.set_page_config(page_title="나의 이야기를 쌓는 15분", layout="centered")
