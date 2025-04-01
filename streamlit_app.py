@@ -147,7 +147,7 @@ if st.button("📋 문장 분석 요청", key="analyze_btn") and original_text:
 문장:
 "{original_text}"
 """
-            res = client.chat.completions.create(
+            res = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2  # 결과 안정화
