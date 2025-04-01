@@ -8,23 +8,7 @@ from datetime import datetime
 import tempfile
 
 # ✅ OCR 설정
-import os
-
-# 클라우드 환경에서는 OCR 꺼두기
-if not os.environ.get("STREAMLIT_SERVER"):
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-
-if not os.environ.get("STREAMLIT_SERVER"):
-    st.markdown("### 📸 손글씨 사진 업로드 (OCR)")
-    ocr_image = st.file_uploader("👉 손글씨 이미지 업로드", type=["jpg", "png"])
-
-    if ocr_image:
-        try:
-            img = Image.open(ocr_image)
-            ocr_text = pytesseract.image_to_string(img, lang="kor")
-            st.success("✅ 인식 완료!")
-        except Exception as e:
-            st.error(f"❌ OCR 오류: {e}")
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # OpenAI 연결
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -125,21 +109,57 @@ st.markdown("<h3>📝 오늘의 문장 필사</h3>", unsafe_allow_html=True)
 st.markdown("<p>오늘의 문장을 직접 필사해보세요.</p>", unsafe_allow_html=True)
 original_text = st.text_area("", key="original")
 
+# ✅ 세션 상태 준비 (페이지 상단에 한 번만 선언해 주세요)
+if "analysis_result" not in st.session_state:
+    st.session_state.analysis_result = None
+    st.session_state.last_input = ""
+
+# 🧠 문장 분석 요청 버튼
 if st.button("📋 문장 분석 요청", key="analyze_btn") and original_text:
-    with st.spinner("문장 분석 중입니다..."):
-        prompt = f"""
-        문예창작 교수처럼 아래 문장을 분석해 주세요.
-        각 항목은 Markdown 형식으로 출력하고, 중요한 단어는 **굵게** 표시해 주세요.
+    if st.session_state.last_input != original_text:
+        with st.spinner("문장 분석 중입니다..."):
+            prompt = f"""
+당신은 문예창작과 교수입니다.
+학생이 필사한 문장을 작법 기준에 따라 다음과 같이 분석해 주세요.
+**Markdown 형식으로 출력**하고, **중요한 단어는 굵게** 표시해 주세요.
 
-        ✅ 형태소 분석: 단어(품사) + 조사
-        ✅ 의미 분석: 주요 단어 → 의미 설명 (표 형식)
-        ✅ 수사법 분석: 어떤 수사법을 사용했고 어떤 효과가 있는지 설명
+---
 
-        문장: "{original_text}"
-        """
-        res = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": prompt}])
-        st.markdown("<h3>🔎 문장 분석 결과</h3>", unsafe_allow_html=True)
-        st.markdown(res.choices[0].message.content)
+### ✅ 형태소 분석
+- 단어(품사) + 조사 형태로 정리해주세요. 표 형식이 좋습니다.
+
+---
+
+### ✅ 의미 분석
+단순한 요약이 아니라 **문장의 숨은 주제의식과 감정, 상징성**을 파악해 주세요.
+
+- 주제의식: ...
+- 중심 의미: ...
+- 감정적 뉘앙스: ...
+- 상징 분석: ...
+
+---
+
+### ✅ 수사법 분석
+- 어떤 수사법이 사용되었는지 식별하고,
+- 그것이 문장의 전달력에 어떤 효과를 주는지 평가해 주세요.
+
+문장:
+"{original_text}"
+"""
+            res = client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2  # 결과 안정화
+            )
+            st.session_state.analysis_result = res.choices[0].message.content
+            st.session_state.last_input = original_text
+
+# ✅ 결과 출력
+if st.session_state.analysis_result:
+    st.markdown("<h3>🔎 문장 분석 결과</h3>", unsafe_allow_html=True)
+    st.markdown(st.session_state.analysis_result)
+
 
 # 🔧 형태변형 필사
 st.markdown("<h3>🔧 형태변형 필사</h3>", unsafe_allow_html=True)
@@ -181,33 +201,43 @@ if st.button("🤖 AI 피드백 받기 (형태변형)", key="form1_btn"):
 # 🖌️ 창의적 필사
 st.markdown("<h3>🖌️ 창의적 필사</h3>", unsafe_allow_html=True)
 st.markdown("<p>자유롭게 상상력과 감성을 담아 창의적으로 표현해보세요.</p>", unsafe_allow_html=True)
-form2 = st.text_area("", key="form2")
+form2 = st.text_area("", key="form2")  
 
 if st.button("🤖 AI 피드백 받기 (창의적)", key="form2_btn"):
     with st.spinner("AI가 평가 중입니다..."):
 
-        # 평가
+        # 🔍 문장 분석 먼저 실행
+        analysis_prompt = f"""
+        문예창작 교수처럼 아래 문장을 분석해 주세요.
+        문장: "{original_text}"
+        """
+        analysis = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": analysis_prompt}]
+        ).choices[0].message.content
+
+        # 📊 형태변형 평가 (재사용 가능 or 새로운 평가도 가능)
+        p1 = f"""
+        아래 문장은 사용자의 형태변형 필사입니다.
+        평가해 주세요.
+        문장: "{form1}"
+        """
+        f1_eval = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": p1}]).choices[0].message.content
+
+        # 🎓 형태변형 한 줄 평
+        prof1 = f"문장: {form1}"
+        pf1_line = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": prof1}]).choices[0].message.content
+
+        # 🖌️ 창의적 필사 평가
         p2 = f"""
         아래 문장은 사용자의 창의적 필사입니다.
-        아래 기준으로 엄격하게 평가해 주세요:
-        - 감성 전달력
-        - 창의성
-        - 문장 완성도
-        - 스타일 적합성
-
-        1. 별점 (숫자만, 1~5점)
-        2. 장점
-        3. 개선점
-        4. 총평
-
-        별점은 반드시 숫자만 표시하고, 나머지는 Markdown 형식으로 출력해 주세요.
-
+        별점 + 장점 + 개선점 + 총평으로 평가해 주세요.
         문장: "{form2}"
         """
         r2 = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": p2}])
         full_response = r2.choices[0].message.content
 
-        # 별점 추출 (정확하게!)
+        # 별점 추출
         star_match = re.search(r"\b([1-5](?:\.5)?)\b", full_response)
         if star_match:
             score = float(star_match.group(1))
@@ -218,20 +248,16 @@ if st.button("🤖 AI 피드백 받기 (창의적)", key="form2_btn"):
             st.markdown("<h3>🖌️ 창의적 필사 평가</h3>", unsafe_allow_html=True)
             st.markdown(f"<p style='font-size:24px'>{stars} ({fixed}점)</p>", unsafe_allow_html=True)
 
-        # 피드백 전체 출력
         st.markdown(full_response)
+        f2_eval = full_response
 
-        # 교수 평가
-        prof2 = f"""
-        아래 문장을 **AI 문창과 교수**처럼 평가해 주세요.
-        - 작법적으로 한 문장으로
-        - 어미는 모두 **존댓말**(~입니다 / ~합니다)로 작성해 주세요.
-
-        문장: "{form2}"
-        """
-        rp2 = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": prof2}])
+        # 🎓 창의적 한 줄 평
+        prof2 = f"문장: {form2}"
+        pf2_line = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": prof2}]).choices[0].message.content
         st.markdown("<h3>🎓 AI 문창과 교수의 한 줄 평 (창의적 필사)</h3>", unsafe_allow_html=True)
-        st.markdown(rp2.choices[0].message.content)
+        st.markdown(pf2_line)
+
+        # ✅ 저장
         result = {
             "📝 원문": original_text,
             "🔧 형태변형": form1,
@@ -242,14 +268,8 @@ if st.button("🤖 AI 피드백 받기 (창의적)", key="form2_btn"):
             "🖌️ 창의 평가": f2_eval,
             "🎓 창의 한 줄 평": pf2_line
         }
+
         save_history(result)
         st.success("📥 저장 완료! 히스토리에 추가되었습니다.")
 
-        pdf_file = generate_pdf(result)
-        with open(pdf_file, "rb") as f:
-            st.download_button(
-                label="📄 PDF로 저장하기",
-                data=f,
-                file_name="letterbrick_report.pdf",
-                mime="application/pdf"
-            )
+    
