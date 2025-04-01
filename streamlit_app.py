@@ -147,13 +147,13 @@ if st.button("📋 문장 분석 요청", key="analyze_btn") and original_text:
 문장:
 "{original_text}"
 """
-    res = openai.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2  # 결과 안정화
-            )
-            st.session_state.analysis_result = res.choices[0].message.content
-            st.session_state.last_input = original_text
+        res = openai.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2  # 결과 안정화
+        )
+        st.session_state.analysis_result = res.choices[0].message.content
+        st.session_state.last_input = original_text
 
 # ✅ 결과 출력
 if st.session_state.analysis_result:
