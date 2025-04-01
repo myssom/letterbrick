@@ -1,5 +1,5 @@
 import streamlit as st
-from openai import OpenAI
+import openai
 from fpdf import FPDF
 from PIL import Image
 import pytesseract
