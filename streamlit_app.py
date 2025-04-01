@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 from fpdf import FPDF
 from PIL import Image
 import pytesseract
@@ -11,7 +11,7 @@ import tempfile
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # ✅ OpenAI 연결
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # ✅ 저장 파일
 HISTORY_FILE = "history.json"
@@ -148,7 +148,7 @@ if st.button("📋 문장 분석 요청", key="analyze_btn") and original_text:
 문장:
 "{original_text}"
 """
-        res = openai.ChatCompletion.create(
+        res = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2  # 결과 안정화
@@ -183,7 +183,7 @@ if st.button("🤖 AI 피드백 받기 (형태변형)", key="form1_btn"):
 
         문장: "{form1}"
         """
-        r1 = openai.ChatCompletion.create(model="gpt-4", messages=[{"role": "user", "content": p1}])
+        r1 = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": p1}])
         st.markdown("<h3>📊 형태변형 필사 평가</h3>", unsafe_allow_html=True)
         st.markdown(r1.choices[0].message.content)
 
@@ -195,7 +195,7 @@ if st.button("🤖 AI 피드백 받기 (형태변형)", key="form1_btn"):
 
         문장: "{form1}"
         """
-        rp1 = openai.ChatCompletion.create(model="gpt-4", messages=[{"role": "user", "content": prof1}])
+        rp1 = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": prof1}])
         st.markdown("<h3>🎓 AI 문창과 교수의 한 줄 평 (형태변형)</h3>", unsafe_allow_html=True)
         st.markdown(rp1.choices[0].message.content)
 
@@ -212,7 +212,7 @@ if st.button("🤖 AI 피드백 받기 (창의적)", key="form2_btn"):
         문예창작 교수처럼 아래 문장을 분석해 주세요.
         문장: "{original_text}"
         """
-        analysis = openai.ChatCompletion.create(
+        analysis = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": analysis_prompt}]
         ).choices[0].message.content
@@ -223,11 +223,11 @@ if st.button("🤖 AI 피드백 받기 (창의적)", key="form2_btn"):
         평가해 주세요.
         문장: "{form1}"
         """
-        f1_eval = openai.ChatCompletion.create(model="gpt-4", messages=[{"role": "user", "content": p1}]).choices[0].message.content
+        f1_eval = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": p1}]).choices[0].message.content
 
         # 🎓 형태변형 한 줄 평
         prof1 = f"문장: {form1}"
-        pf1_line = openai.ChatCompletion.create(model="gpt-4", messages=[{"role": "user", "content": prof1}]).choices[0].message.content
+        pf1_line = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": prof1}]).choices[0].message.content
 
         # 🖌️ 창의적 필사 평가
         p2 = f"""
@@ -235,7 +235,7 @@ if st.button("🤖 AI 피드백 받기 (창의적)", key="form2_btn"):
         별점 + 장점 + 개선점 + 총평으로 평가해 주세요.
         문장: "{form2}"
         """
-        r2 = openai.ChatCompletion.create(model="gpt-4", messages=[{"role": "user", "content": p2}])
+        r2 = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": p2}])
         full_response = r2.choices[0].message.content
 
         # 별점 추출
@@ -254,7 +254,7 @@ if st.button("🤖 AI 피드백 받기 (창의적)", key="form2_btn"):
 
         # 🎓 창의적 한 줄 평
         prof2 = f"문장: {form2}"
-        pf2_line = openai.ChatCompletion.create(model="gpt-4", messages=[{"role": "user", "content": prof2}]).choices[0].message.content
+        pf2_line = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": prof2}]).choices[0].message.content
         st.markdown("<h3>🎓 AI 문창과 교수의 한 줄 평 (창의적 필사)</h3>", unsafe_allow_html=True)
         st.markdown(pf2_line)
 
