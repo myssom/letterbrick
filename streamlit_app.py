@@ -1,5 +1,5 @@
 import streamlit as st
-from openai import OpenAI
+import openai
 from fpdf import FPDF
 from PIL import Image
 import pytesseract
@@ -11,7 +11,7 @@ import tempfile
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # OpenAI 연결
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 # 저장 파일
 HISTORY_FILE = "history.json"
